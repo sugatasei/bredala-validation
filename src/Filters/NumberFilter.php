@@ -13,9 +13,9 @@ class NumberFilter extends Filter
      * @param string $message
      * @return float|null
      */
-    public static function sanitize($value, string $message = 'type')
+    public static function sanitize(mixed $value, string $message = 'type'): ?float
     {
-        if ($value === null || $value === '') {
+        if ($value === null) {
             return null;
         }
 
@@ -23,70 +23,51 @@ class NumberFilter extends Filter
             $value = trim($value);
         }
 
-        if (!is_numeric($value)) {
-            throw new ValidationException($message);
+        if ($value === '') {
+            return null;
         }
 
-        return (float) $value;
+        if (is_numeric($value)) {
+            return (float)$value;
+        }
+
+        throw new ValidationException($message);
     }
 
     /**
-     * @param float|int $value
-     * @param float|int $num
-     * @param string $message
-     * @return float|int
+     * @param float $value
+     * @param float $min
      */
-    public static function equal($value, $num, string $message = 'equal')
-    {
-        if ($value != $num) {
-            throw new ValidationException($message);
-        }
-
-        return $value;
-    }
-
-    /**
-     * @param float|int $value
-     * @param float|int $min
-     * @param string $message
-     * @return float|int
-     */
-    public static function min($value, $min, string $message = 'min')
+    public static function min(float $value, float $min): void
     {
         if ($value < $min) {
-            throw new ValidationException($message);
+            throw new ValidationException('min');
         }
-
-        return $value;
     }
 
     /**
-     * @param float|int $value
-     * @param float|int $max
-     * @param string $message
-     * @return float|int
+     * @param float $value
+     * @param float $max
      */
-    public static function max($value, $min, string $message = 'max')
+    public static function max(float $value, float $max): void
     {
-        if ($value > $min) {
-            throw new ValidationException($message);
+        if ($value > $max) {
+            throw new ValidationException('max');
         }
-
-        return $value;
     }
 
     /**
-     * @param float|int $value
-     * @param float|int $min
-     * @param float|int $max
-     * @param string $message
-     * @return float|int
+     * @param float $value
+     * @param float $min
+     * @param float $max
      */
-    public static function range($value, $min, $max, string $message = 'range')
+    public static function range(float $value, float $min, float $max): void
     {
-        self::min($value, $min, $message);
-        self::max($value, $max, $message);
-
-        return $value;
+        if ($value < $min) {
+            throw new ValidationException('range');
+        }
+        if ($value > $max) {
+            throw new ValidationException('range');
+        }
     }
 }

@@ -13,12 +13,11 @@ class BoolFilter extends Filter
      * Boolean validation
      *
      * @param mixed $value
-     * @param string $message
      * @return boolean|null
      */
-    public static function sanitize($value, string $message = 'type')
+    public static function sanitize(mixed $value): ?bool
     {
-        if ($value === null || $value === '') {
+        if ($value === null) {
             return null;
         }
 
@@ -27,14 +26,27 @@ class BoolFilter extends Filter
         }
 
         if (is_numeric($value)) {
-            return !!$value;
+            $value = (int) $value;
+            if ($value === 0) {
+                return false;
+            } elseif ($value === 1) {
+                return true;
+            }
+
+            throw new ValidationException('type');
         }
 
         if (is_string($value)) {
+            $value = trim($value);
+            if ($value === '') {
+                return null;
+            }
             $value = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
-            if ($value !== null) return $value;
+            if ($value !== null) {
+                return $value;
+            }
         }
 
-        throw new ValidationException($message);
+        throw new ValidationException('type');
     }
 }

@@ -8,43 +8,34 @@ class Filter
 {
     /**
      * @param mixed $value
-     * @param string $message
      * @return mixed
      */
-    public static function required($value, string $message = 'required')
+    public static function required(mixed $value): void
     {
-        if (empty($value)) {
-            throw new ValidationException($message);
+        if ($value === null || $value === []) {
+            throw new ValidationException('required');
         }
-
-        return $value;
     }
 
     /**
      * @param mixed $value
      * @param array $items
-     * @param string $message
      */
-    public static function include($value, array $items, $message = 'include')
-    {
-        if (in_array($value, $items)) {
-            return $value;
-        }
-
-        throw new ValidationException($message);
-    }
-
-    /**
-     * @param mixed $value
-     * @param array $items
-     * @param string $message
-     */
-    public static function exclude($value, array $items, $message = 'include')
+    public static function include(mixed $value, array $items): void
     {
         if (!in_array($value, $items)) {
-            return $value;
+            throw new ValidationException('include');
         }
+    }
 
-        throw new ValidationException($message);
+    /**
+     * @param mixed $value
+     * @param array $items
+     */
+    public static function exclude(mixed $value, array $items): void
+    {
+        if (in_array($value, $items)) {
+            throw new ValidationException('exclude');
+        }
     }
 }

@@ -11,154 +11,151 @@ class StringFilter extends Filter
      * Text validation
      *
      * @param mixed $value
-     * @param string $message
      * @return string|null
      */
-    public static function sanitize($value, string $message = 'type')
+    public static function sanitize(mixed $value): ?string
     {
         if ($value === null) {
-            return '';
+            return null;
         }
 
         if (is_string($value)) {
-            return Helper::sanitizeString($value);
+            return Helper::sanitizeString($value) ?: null;
         }
 
-        if (is_numeric($value) || is_bool($value)) {
+        if (is_numeric($value)) {
             return (string) $value;
         }
 
-        throw new ValidationException($message);
+        throw new ValidationException('type');
     }
 
     /**
      * Varchar validation
      *
      * @param mixed $value
-     * @param string $message
-     * @return string
      */
-    public static function noSpace($value, string $message = 'type')
+    public static function noSpace($value): void
     {
         if (preg_match("/\s/", $value)) {
-            throw new ValidationException($message);
+            throw new ValidationException('nospace');
         }
-
-        return $value;
     }
 
     /**
      * @param string $value
      * @param integer $min
-     * @param string $message
-     * @return string
      */
-    public static function min(string $value, int $min, string $message = 'min'): string
+    public static function min(string $value, int $min): void
     {
         if (mb_strlen($value) < $min) {
-            throw new ValidationException($message);
+            throw new ValidationException('min');
         }
-
-        return $value;
     }
 
     /**
      * @param string $value
      * @param integer $max
-     * @param string $message
-     * @return string
      */
-    public static function max(string $value, int $min, string $message = 'max'): string
+    public static function max(string $value, int $max): void
     {
-        if (mb_strlen($value) > $min) {
-            throw new ValidationException($message);
+        if (mb_strlen($value) > $max) {
+            throw new ValidationException('max');
         }
-
-        return $value;
     }
 
     /**
      * @param string $value
      * @param integer $min
      * @param integer $max
-     * @param string $message
-     * @return string
      */
-    public static function range(string $value, int $min, int $max, string $message = 'range'): string
+    public static function range(string $value, int $min, int $max): void
     {
-        self::min($value, $min, $message);
-        self::max($value, $max, $message);
+        if (mb_strlen($value) < $min) {
+            throw new ValidationException('range');
+        }
+        if (mb_strlen($value) > $max) {
+            throw new ValidationException('range');
+        }
+    }
 
-        return $value;
+    /**
+     * @param string $value
+     * @param string $num
+     */
+    public static function equal(string $value, string $text): void
+    {
+        if ($value !== $text) {
+            throw new ValidationException('equal');
+        }
+    }
+
+    /**
+     * @param string $value
+     * @param string $text
+     */
+    public static function differ(string $value, string $text): void
+    {
+        if ($value === $text) {
+            throw new ValidationException('equal');
+        }
     }
 
     /**
      * @param string $value
      * @param string $match
-     * @param string $message
      */
-    public static function match(string $value, string $pattern, string $message = 'match'): string
+    public static function match(string $value, string $pattern): void
     {
-        if (preg_match($pattern, $value) === 1) {
-            return $value;
+        if (preg_match($pattern, $value) !== 1) {
+            throw new ValidationException('match');
         }
-
-        throw new ValidationException($message);
     }
 
     /**
      * @param string $value
-     * @param string $message
-     * @return string
      */
-    public static function email(string $value, string $message = 'email'): string
+    public static function email(string $value): void
     {
-        if (!!filter_var($value, FILTER_VALIDATE_EMAIL)) {
-            return $value;
+        if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+            throw new ValidationException('email');
         }
-
-        throw new ValidationException($message);
     }
 
     /**
      * @param string $value
-     * @param string $message
-     * @return string
      */
-    public static function ip(string $value, string $message = 'ip'): string
+    public static function ip(string $value): void
     {
-        if (!!filter_var($value, FILTER_VALIDATE_IP)) {
-            return $value;
+        if (!filter_var($value, FILTER_VALIDATE_IP)) {
+            throw new ValidationException('ip');
         }
-
-        throw new ValidationException($message);
     }
 
     /**
      * @param string $value
-     * @param string $message
-     * @return string
      */
-    public static function ipv4(string $value, string $message = 'ip'): string
+    public static function ipv4(string $value): void
     {
-        if (!!filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-            return $value;
+        if (!filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            throw new ValidationException('ip');
         }
-
-        throw new ValidationException($message);
     }
 
     /**
      * @param string $value
-     * @param string $message
-     * @return string
      */
-    public static function ipv6(string $value, string $message = 'ip'): string
+    public static function ipv6(string $value): void
     {
-        if (!!filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-            return $value;
+        if (!filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            throw new ValidationException('ip');
         }
+    }
 
-        throw new ValidationException($message);
+    public static function url(string $value): void
+    {
+        if (!filter_var($value, FILTER_VALIDATE_URL)) {
+            throw new ValidationException('url');
+        }
     }
 }

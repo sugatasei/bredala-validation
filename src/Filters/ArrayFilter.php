@@ -2,88 +2,113 @@
 
 namespace Bredala\Validation\Filters;
 
-use Bredala\Validation\Helper;
 use Bredala\Validation\ValidationException;
 
 class ArrayFilter extends Filter
 {
-    /**
-     * Array validation
-     *
-     * @param mixed $value
-     * @param string $message
-     * @return array
-     */
-    public static function sanitize($value, string $message = 'type')
+    public static function sanitizeInt(mixed $value): array
     {
-        if ($value === null) {
+        return self::parseArray(self::sanitizeArray($value), [IntFilter::class, 'sanitize']);
+    }
+
+    public static function sanitizeNumber(mixed $value): array
+    {
+        return self::parseArray(self::sanitizeArray($value), [NumberFilter::class, 'sanitize']);
+    }
+
+    public static function sanitizeText(mixed $value): array
+    {
+        return self::parseArray(self::sanitizeArray($value), [StringFilter::class, 'sanitize']);
+    }
+
+    public static function sanitizeObject(mixed $value): array
+    {
+        $input = self::sanitizeArray($value);
+        $output = [];
+
+        foreach ($input as $key => $value) {
+
+            if (is_string($value)) {
+                $value = json_decode($value, true);
+            }
+
+            if (is_array($value)) {
+                $output[$key] = $value;
+            }
+        }
+
+        return $output;
+    }
+
+    private static function sanitizeArray(mixed $value): array
+    {
+        if ($value === null || $value === '') {
             return [];
         }
 
-        if (!is_array($value)) {
-            throw new ValidationException($message);
+        if (is_string($value)) {
+            $value = json_decode($value, true);
         }
 
-        return Helper::sanitizeValue($value);
-    }
-
-    /**
-     * @param array $value
-     * @param integer $num
-     * @param string $message
-     * @return array
-     */
-    public static function equal(array $value, int $num, string $message = 'equal'): array
-    {
-        if (count($value) !== $num) {
-            throw new ValidationException($message);
+        if (!is_array($value)) {
+            throw new ValidationException('type');
         }
 
         return $value;
     }
 
+    private static function parseArray(array $input, ?callable $callback = null)
+    {
+        $output = [];
+        foreach ($input as $key => $value) {
+            if (is_array($value)) {
+                $output[$key] = self::parseArray($value);
+            } else {
+                try {
+                    $output[$key] = call_user_func($callback, $value);
+                } catch (ValidationException $ex) {
+                }
+            }
+        }
+
+        return $output;
+    }
+
     /**
      * @param array $value
      * @param integer $min
-     * @param string $message
-     * @return array
      */
-    public static function min(array $value, int $min, string $message = 'min'): array
+    public static function min(array $value, int $min): void
     {
         if (count($value) < $min) {
-            throw new ValidationException($message);
+            throw new ValidationException('min');
         }
-
-        return $value;
     }
 
     /**
      * @param array $value
      * @param integer $max
-     * @param string $message
-     * @return array
      */
-    public static function max(array $value, int $min, string $message = 'max'): array
+    public static function max(array $value, int $max): void
     {
-        if (count($value) > $min) {
-            throw new ValidationException($message);
+        if (count($value) > $max) {
+            throw new ValidationException('max');
         }
-
-        return $value;
     }
 
     /**
      * @param array $value
      * @param integer $min
      * @param integer $max
-     * @param string $message
-     * @return array
      */
-    public static function range(array $value, int $min, int $max, string $message = 'range'): array
+    public static function range(array $value, int $min, int $max): void
     {
-        self::min($value, $min, $message);
-        self::max($value, $max, $message);
+        if (count($value) < $min) {
+            throw new ValidationException('min');
+        }
 
-        return $value;
+        if (count($value) > $max) {
+            throw new ValidationException('max');
+        }
     }
 }
