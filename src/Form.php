@@ -10,8 +10,13 @@ use Bredala\Validation\Filters\StringFilter;
 
 class Form
 {
-    private array $fields = [];
+    /**
+     * @var Form[]
+     */
+    private array $forms = [];
+    private array $rules = [];
     private array $values = [];
+    private array $defaults = [];
     private array $errors = [];
     private array $messages = [];
 
@@ -19,110 +24,104 @@ class Form
      * Add field
      *
      * @param string $name
-     * @param callable|null $filter
-     * @param callable|null $rule
+     * @param callable $rule
      * @param mixed $default
      * @return static
      */
-    public function field(string $name, ?callable $filter = null, ?callable $rule = null, mixed $default = null): static
+    public function addRule(string $field, callable $rule, array $params = []): static
     {
-        $this->fields[$name] = [
-            "filter" => $filter,
-            "rule" => $rule,
-            "form" => null,
-            "default" => $default,
-        ];
+        $this->rules[$field][] = [$rule, $params];
 
         return $this;
     }
 
     /**
-     * @param string $name
+     * @param string $field
      * @param callable|null $rule
      * @param mixed $default
      * @return static
      */
-    public function boolean(string $name, ?callable $rule = null, mixed $default = null): static
+    public function boolean(string $field): static
     {
-        return $this->field($name, [BoolFilter::class, "sanitize"], $rule, $default);
+        return $this->addRule($field, [BoolFilter::class, "sanitize"]);
     }
 
     /**
-     * @param string $name
+     * @param string $field
      * @param callable|null $rule
      * @param mixed $default
      * @return static
      */
-    public function integer(string $name, ?callable $rule = null, mixed $default = null): static
+    public function integer(string $field): static
     {
-        return $this->field($name, [IntFilter::class, "sanitize"], $rule, $default);
+        return $this->addRule($field, [IntFilter::class, "sanitize"]);
     }
 
     /**
-     * @param string $name
+     * @param string $field
      * @param callable|null $rule
      * @param mixed $default
      * @return static
      */
-    public function number(string $name, ?callable $rule = null, mixed $default = null): static
+    public function number(string $field): static
     {
-        return $this->field($name, [NumberFilter::class, "sanitize"], $rule, $default);
+        return $this->addRule($field, [NumberFilter::class, "sanitize"]);
     }
 
     /**
-     * @param string $name
+     * @param string $field
      * @param callable|null $rule
      * @param mixed $default
      * @return static
      */
-    public function string(string $name, ?callable $rule = null, mixed $default = null): static
+    public function url(string $field): static
     {
-        return $this->field($name, [StringFilter::class, "sanitize"], $rule, $default);
+        return $this->addRule($field, [StringFilter::class, "sanitizeUrl"]);
     }
 
     /**
-     * @param string $name
-     * @param callable|null $rule
-     * @return static
-     */
-    public function arrayOfInteger(string $name, ?callable $rule = null): static
-    {
-        return $this->field($name, [ArrayFilter::class, "sanitizeInt"], $rule, []);
-    }
-    /**
-     * @param string $name
-     * @param callable|null $rule
-     * @return static
-     */
-    public function arrayOfNumber(string $name, ?callable $rule = null): static
-    {
-        return $this->field($name, [ArrayFilter::class, "sanitizeNumber"], $rule, []);
-    }
-
-    /**
-     * @param string $name
+     * @param string $field
      * @param callable|null $rule
      * @param mixed $default
      * @return static
      */
-    public function arrayOfString(string $name, ?callable $rule = null): static
+    public function string(string $field): static
     {
-        return $this->field($name, [ArrayFilter::class, "sanitizeText"], $rule, []);
+        return $this->addRule($field, [StringFilter::class, "sanitize"]);
     }
 
     /**
-     * @param string $name
+     * @param string $field
+     * @param callable|null $rule
+     * @return static
+     */
+    public function array(string $field): static
+    {
+        $this->setDefault($field, []);
+        $this->addRule($field, [ArrayFilter::class, "sanitize"]);
+        return $this;
+    }
+
+    public function map(string $field, callable $callback): static
+    {
+        return $this->addRule($field, [ArrayFilter::class, 'map'], [$callback]);
+    }
+
+    /**
+     * @param string $field
      * @param Form $form
      * @param callable|null $rule
      * @return static
      */
-    public function arrayOfForm(string $name, Form $form, ?callable $rule = null): static
+    public function form(string $field, Form $form): static
     {
-        $this->field($name, [ArrayFilter::class, "sanitizeObject"], $rule, []);
-        $this->fields[$name]['form'] = $form;
+        $this->map($field, [ArrayFilter::class, "sanitizeObject"]);
+        $this->forms[$field] = $form;
         return $this;
     }
 
+    // -------------------------------------------------------------------------
+    // Values
     // -------------------------------------------------------------------------
 
     /**
@@ -154,6 +153,24 @@ class Form
     }
 
     // -------------------------------------------------------------------------
+    // Default values
+    // -------------------------------------------------------------------------
+
+    public function setDefault(string $field, mixed $value): static
+    {
+        $this->defaults[$field] = $value;
+
+        return $this;
+    }
+
+    public function getDefault(string $field): mixed
+    {
+        return $this->defaults[$field] ?? null;
+    }
+
+    // -------------------------------------------------------------------------
+    // Errors
+    // -------------------------------------------------------------------------
 
     /**
      * @param string $field
@@ -181,6 +198,8 @@ class Form
         return $this->errors;
     }
 
+    // -------------------------------------------------------------------------
+    // Error mesages
     // -------------------------------------------------------------------------
 
     public function setMessage(string $field, string $error, string $message): static
@@ -234,36 +253,38 @@ class Form
         $this->values = [];
         $this->errors = [];
 
+        foreach ($this->rules as $field => $rules) {
+            $default = $this->getDefault($field);
+            $value = $data[$field] ?? $default;
 
-        foreach ($this->fields as $name => $field) {
-            $filter = $field["filter"];
-            $rule = $field["rule"];
-            $form = $field["form"];
-            $default = $field["default"];
-            $value = $data[$name] ?? $default;
+            $isChecked = false;
 
-            // Filter
+            // Each rules
             try {
-                if ($filter && $value !== $default) {
-                    $value = call_user_func($filter, $value) ?? $default;
+                foreach ($rules as $rule) {
+                    if ($value === $default) {
+                        break;
+                    }
+                    $value = call_user_func_array($rule[0], $value, ...$rule[1]) ?? $default;
+                    $isChecked = true;
                 }
             } catch (ValidationException $ex) {
-                $this->setError($name, $ex->getMessage());
+                $this->setError($field, $ex->getMessage());
+            }
+
+            // First rule failed
+            if (!$isChecked && $value !== $default) {
                 $value = $default;
             }
 
-            /**
-             * Array of Form
-             *
-             * @var Form $form
-             */
-            if ($form && is_array($value) && $value) {
+            // Nested forms
+            if (($form = $this->forms[$field] ?? null) && is_array($value) && $value) {
                 foreach ($value as $k => $v) {
                     if (!$form->validate($v)) {
-                        $this->setError($name, 'type');
+                        $this->setError($field, 'type');
                         foreach ($form->getErrors() as $f => $e) {
-                            $this->setError("{$name}.{$k}.{$f}", $e);
-                            $this->setDefaultMessage("{$name}.{$k}.{$f}", $form->getMessage($f));
+                            $this->setError("{$field}.{$k}.{$f}", $e);
+                            $this->setDefaultMessage("{$field}.{$k}.{$f}", $form->getMessage($f));
                         }
                     }
                     $value[$k] = $form->getValues();
@@ -271,16 +292,7 @@ class Form
             }
 
             // Set value
-            $this->setValue($name, $value);
-
-            // Rule
-            if ($rule && !$this->getError($name)) {
-                try {
-                    call_user_func($rule, $value);
-                } catch (ValidationException $ex) {
-                    $this->setError($name, $ex->getMessage());
-                }
-            }
+            $this->setValue($field, $value);
         }
 
         return $this->isValid();

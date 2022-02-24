@@ -6,41 +6,7 @@ use Bredala\Validation\ValidationException;
 
 class ArrayFilter extends Filter
 {
-    public static function sanitizeInt(mixed $value): array
-    {
-        return self::parseArray(self::sanitizeArray($value), [IntFilter::class, 'sanitize']);
-    }
-
-    public static function sanitizeNumber(mixed $value): array
-    {
-        return self::parseArray(self::sanitizeArray($value), [NumberFilter::class, 'sanitize']);
-    }
-
-    public static function sanitizeText(mixed $value): array
-    {
-        return self::parseArray(self::sanitizeArray($value), [StringFilter::class, 'sanitize']);
-    }
-
-    public static function sanitizeObject(mixed $value): array
-    {
-        $input = self::sanitizeArray($value);
-        $output = [];
-
-        foreach ($input as $key => $value) {
-
-            if (is_string($value)) {
-                $value = json_decode($value, true);
-            }
-
-            if (is_array($value)) {
-                $output[$key] = $value;
-            }
-        }
-
-        return $output;
-    }
-
-    private static function sanitizeArray(mixed $value): array
+    public static function sanitize(mixed $value): array
     {
         if ($value === null || $value === '') {
             return [];
@@ -57,43 +23,60 @@ class ArrayFilter extends Filter
         return $value;
     }
 
-    private static function parseArray(array $input, ?callable $callback = null)
+    public static function map(mixed $input, callable $callback)
     {
+        if (!$input || !is_array($input)) {
+            return [];
+        }
+
         $output = [];
         foreach ($input as $key => $value) {
-            if (is_array($value)) {
-                $output[$key] = self::parseArray($value);
-            } else {
-                try {
-                    $output[$key] = call_user_func($callback, $value);
-                } catch (ValidationException $ex) {
-                }
+            try {
+                $output[$key] = call_user_func($callback, $value);
+            } catch (ValidationException $ex) {
             }
         }
 
         return $output;
     }
 
-    /**
-     * @param array $value
-     * @param integer $min
-     */
-    public static function min(array $value, int $min): void
+    public static function sanitizeObject(mixed $value): array
     {
+        if (is_string($value)) {
+            $value = json_decode($value, true);
+        }
+
+        if (!is_array($value)) {
+            throw new ValidationException('type');
+        }
+
+        return $value;
+    }
+
+    public static function min(?array $value, int $min): array
+    {
+        $count = $value ? count($value) : 0;
+
         if (count($value) < $min) {
             throw new ValidationException('min');
         }
+
+        return $value;
     }
 
     /**
      * @param array $value
      * @param integer $max
      */
-    public static function max(array $value, int $max): void
+    public static function max(?array $value, int $max): array
     {
-        if (count($value) > $max) {
+        $count = $value ? count($value) : 0;
+
+        if ($count > $max) {
             throw new ValidationException('max');
         }
+
+        return $value;
     }
 
     /**
@@ -101,14 +84,18 @@ class ArrayFilter extends Filter
      * @param integer $min
      * @param integer $max
      */
-    public static function range(array $value, int $min, int $max): void
+    public static function range(?array $value, int $min, int $max): array
     {
-        if (count($value) < $min) {
+        $count = $value ? count($value) : 0;
+
+        if ($count < $min) {
             throw new ValidationException('min');
         }
 
-        if (count($value) > $max) {
+        if ($count > $max) {
             throw new ValidationException('max');
         }
+
+        return $value;
     }
 }

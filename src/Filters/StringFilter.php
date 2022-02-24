@@ -7,12 +7,6 @@ use Bredala\Validation\ValidationException;
 
 class StringFilter extends Filter
 {
-    /**
-     * Text validation
-     *
-     * @param mixed $value
-     * @return string|null
-     */
     public static function sanitize(mixed $value): ?string
     {
         if ($value === null) {
@@ -30,38 +24,43 @@ class StringFilter extends Filter
         throw new ValidationException('type');
     }
 
-    /**
-     * Varchar validation
-     *
-     * @param mixed $value
-     */
-    public static function noSpace($value): void
+    public static function sanitizeUrl(mixed $value): ?string
     {
-        if (preg_match("/\s/", $value)) {
-            throw new ValidationException('nospace');
+        if (!$value || !is_string($value)) {
+            return null;
         }
+
+        return filter_var($value, FILTER_SANITIZE_URL) ?: null;
     }
 
     /**
      * @param string $value
      * @param integer $min
      */
-    public static function min(string $value, int $min): void
+    public static function min(?string $value, int $min): ?string
     {
-        if (mb_strlen($value) < $min) {
+        $count = $value ? mb_strlen($value) : 0;
+
+        if ($count < $min) {
             throw new ValidationException('min');
         }
+
+        return $value;
     }
 
     /**
      * @param string $value
      * @param integer $max
      */
-    public static function max(string $value, int $max): void
+    public static function max(?string $value, int $max): ?string
     {
-        if (mb_strlen($value) > $max) {
+        $count = $value ? mb_strlen($value) : 0;
+
+        if ($count > $max) {
             throw new ValidationException('max');
         }
+
+        return $value;
     }
 
     /**
@@ -69,93 +68,113 @@ class StringFilter extends Filter
      * @param integer $min
      * @param integer $max
      */
-    public static function range(string $value, int $min, int $max): void
+    public static function range(?string $value, int $min, int $max): ?string
     {
-        if (mb_strlen($value) < $min) {
+        $count = $value ? mb_strlen($value) : 0;
+
+        if ($count < $min) {
             throw new ValidationException('range');
         }
-        if (mb_strlen($value) > $max) {
+        if ($count > $max) {
             throw new ValidationException('range');
         }
+
+        return $value;
     }
 
     /**
      * @param string $value
      * @param string $num
      */
-    public static function equal(string $value, string $text): void
+    public static function equal(?string $value, string $text): ?string
     {
-        if ($value !== $text) {
+        if ($value !== null && $value !== $text) {
             throw new ValidationException('equal');
         }
+
+        return $value;
     }
 
     /**
      * @param string $value
      * @param string $text
      */
-    public static function differ(string $value, string $text): void
+    public static function differ(?string $value, string $text): ?string
     {
-        if ($value === $text) {
+        if ($value !== null && $value === $text) {
             throw new ValidationException('equal');
         }
+
+        return $value;
     }
 
     /**
      * @param string $value
      * @param string $match
      */
-    public static function match(string $value, string $pattern): void
+    public static function match(?string $value, string $pattern): ?string
     {
-        if (preg_match($pattern, $value) !== 1) {
+        if ($value && preg_match($pattern, $value) !== 1) {
             throw new ValidationException('match');
         }
+
+        return $value;
     }
 
     /**
      * @param string $value
      */
-    public static function email(string $value): void
+    public static function email(?string $value): ?string
     {
-        if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+        if ($value && !filter_var($value, FILTER_VALIDATE_EMAIL)) {
             throw new ValidationException('email');
         }
+
+        return $value;
     }
 
     /**
      * @param string $value
      */
-    public static function ip(string $value): void
+    public static function ip(?string $value): ?string
     {
-        if (!filter_var($value, FILTER_VALIDATE_IP)) {
+        if ($value && !filter_var($value, FILTER_VALIDATE_IP)) {
             throw new ValidationException('ip');
         }
+
+        return $value;
     }
 
     /**
      * @param string $value
      */
-    public static function ipv4(string $value): void
+    public static function ipv4(?string $value): ?string
     {
-        if (!filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+        if ($value && !filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
             throw new ValidationException('ip');
         }
+
+        return $value;
     }
 
     /**
      * @param string $value
      */
-    public static function ipv6(string $value): void
+    public static function ipv6(?string $value): ?string
     {
-        if (!filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+        if ($value && !filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
             throw new ValidationException('ip');
         }
+
+        return $value;
     }
 
-    public static function url(string $value): void
+    public static function url(?string $value): ?string
     {
-        if (!filter_var($value, FILTER_VALIDATE_URL)) {
+        if ($value && !filter_var($value, FILTER_VALIDATE_URL)) {
             throw new ValidationException('url');
         }
+
+        return $value;
     }
 }

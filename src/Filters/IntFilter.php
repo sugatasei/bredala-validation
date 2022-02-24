@@ -6,12 +6,6 @@ use Bredala\Validation\ValidationException;
 
 class IntFilter extends Filter
 {
-    /**
-     * Integer validation
-     *
-     * @param mixed $value
-     * @return integer|null
-     */
     public static function sanitize(mixed $value): ?int
     {
         if ($value === null) {
@@ -37,40 +31,39 @@ class IntFilter extends Filter
         throw new ValidationException('type');
     }
 
-    /**
-     * @param int $value
-     * @param int $min
-     */
-    public static function min(int $value, int $min): void
+    public static function min(?int $value, int $min): ?int
     {
-        if ($value < $min) {
+        $count = $value ?: 0;
+
+        if ($count < $min) {
             throw new ValidationException('min');
         }
+
+        return $value;
     }
 
-    /**
-     * @param int $value
-     * @param int $max
-     */
-    public static function max(int $value, int $max): void
+    public static function max(?int $value, int $max): ?int
     {
-        if ($value > $max) {
+        $count = $value ?: 0;
+
+        if ($count > $max) {
             throw new ValidationException('max');
         }
+
+        return $value;
     }
 
-    /**
-     * @param int $value
-     * @param int $min
-     * @param int $max
-     */
-    public static function range(int $value, int $min, int $max): void
+    public static function range(?int $value, int $min, int $max): ?int
     {
-        if ($value < $min) {
+        $count = $value ?: 0;
+
+        if ($count < $min) {
             throw new ValidationException('range');
         }
-        if ($value > $max) {
+        if ($count > $max) {
             throw new ValidationException('range');
         }
+
+        return $value;
     }
 }

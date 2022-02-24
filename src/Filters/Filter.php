@@ -6,36 +6,30 @@ use Bredala\Validation\ValidationException;
 
 class Filter
 {
-    /**
-     * @param mixed $value
-     * @return mixed
-     */
-    public static function required(mixed $value): void
+    public static function required(mixed $value): mixed
     {
-        if ($value === null || $value === []) {
+        if ($value === null || $value = '' || $value === []) {
             throw new ValidationException('required');
         }
+
+        return $value;
     }
 
-    /**
-     * @param mixed $value
-     * @param array $items
-     */
-    public static function include(mixed $value, array $items): void
+    public static function include(mixed $value, array $items): mixed
     {
-        if (!in_array($value, $items)) {
+        if ($value !== null && !in_array($value, $items)) {
             throw new ValidationException('include');
         }
+
+        return $value;
     }
 
-    /**
-     * @param mixed $value
-     * @param array $items
-     */
-    public static function exclude(mixed $value, array $items): void
+    public static function exclude(mixed $value, array $items): mixed
     {
-        if (in_array($value, $items)) {
+        if ($value !== null && in_array($value, $items)) {
             throw new ValidationException('exclude');
         }
+
+        return $value;
     }
 }

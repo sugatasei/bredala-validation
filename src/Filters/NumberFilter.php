@@ -6,14 +6,7 @@ use Bredala\Validation\ValidationException;
 
 class NumberFilter extends Filter
 {
-    /**
-     * Number validation
-     *
-     * @param mixed $value
-     * @param string $message
-     * @return float|null
-     */
-    public static function sanitize(mixed $value, string $message = 'type'): ?float
+    public static function sanitize(mixed $value): ?float
     {
         if ($value === null) {
             return null;
@@ -31,43 +24,42 @@ class NumberFilter extends Filter
             return (float)$value;
         }
 
-        throw new ValidationException($message);
+        throw new ValidationException('type');
     }
 
-    /**
-     * @param float $value
-     * @param float $min
-     */
-    public static function min(float $value, float $min): void
+    public static function min(?float $value, float $min): ?float
     {
-        if ($value < $min) {
+        $count = $value ?: 0;
+
+        if ($count < $min) {
             throw new ValidationException('min');
         }
+
+        return $value;
     }
 
-    /**
-     * @param float $value
-     * @param float $max
-     */
-    public static function max(float $value, float $max): void
+    public static function max(?float $value, float $max): ?float
     {
-        if ($value > $max) {
+        $count = $value ?: 0;
+
+        if ($count > $max) {
             throw new ValidationException('max');
         }
+
+        return $value;
     }
 
-    /**
-     * @param float $value
-     * @param float $min
-     * @param float $max
-     */
-    public static function range(float $value, float $min, float $max): void
+    public static function range(?float $value, float $min, float $max): ?float
     {
-        if ($value < $min) {
+        $count = $value ?: 0;
+
+        if ($count < $min) {
             throw new ValidationException('range');
         }
-        if ($value > $max) {
+        if ($count > $max) {
             throw new ValidationException('range');
         }
+
+        return $value;
     }
 }

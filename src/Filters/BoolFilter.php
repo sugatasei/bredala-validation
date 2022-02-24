@@ -9,12 +9,6 @@ use Bredala\Validation\ValidationException;
  */
 class BoolFilter extends Filter
 {
-    /**
-     * Boolean validation
-     *
-     * @param mixed $value
-     * @return boolean|null
-     */
     public static function sanitize(mixed $value): ?bool
     {
         if ($value === null) {
