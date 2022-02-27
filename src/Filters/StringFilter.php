@@ -2,7 +2,6 @@
 
 namespace Bredala\Validation\Filters;
 
-use Bredala\Validation\Helper;
 use Bredala\Validation\ValidationException;
 
 class StringFilter extends Filter
@@ -13,15 +12,34 @@ class StringFilter extends Filter
             return null;
         }
 
-        if (is_string($value)) {
-            return Helper::sanitizeString($value) ?: null;
-        }
-
         if (is_numeric($value)) {
             return (string) $value;
         }
 
-        throw new ValidationException('type');
+        if (!is_string($value)) {
+            throw new ValidationException('type');
+        }
+
+        // convert into valid utf-8 string
+        $value = htmlentities($value, ENT_QUOTES | ENT_SUBSTITUTE, "UTF-8", false);
+        // decode entities
+        $value = html_entity_decode($value, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, "UTF-8");
+        // strip html tags
+        $value = strip_tags($value);
+        // remove not printable characters (including)
+        $value = preg_replace('/[\x{FFFD}\x00-\x08\x0B\x0C\x0E-\x1F\x7F\x80-\x9F]/u', "", $value);
+        // replace special spaces
+        $value = preg_replace('/[\xA0\xAD\x{2000}-\x{200F}\x{2028}-\x{202F}\x{205F}-\x{206F}]/u', " ", $value);
+        // convert all whitespace except new lines into space
+        $value = preg_replace('/[^\S\n]+/', " ", $value);
+        // trim each lines
+        $value = preg_replace('/ *\n */', "\n", $value);
+        // two sets of consecutive lines at maximum
+        $value = preg_replace('/\n{3,}/', "\n\n", $value);
+        // trim all
+        $value = trim($value);
+
+        return $value === "" ? null : $value;
     }
 
     public static function removeLines(?string $value): ?string
