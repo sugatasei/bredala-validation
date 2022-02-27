@@ -29,9 +29,11 @@ class NumberFilter extends Filter
 
     public static function min(?float $value, float $min): ?float
     {
-        $count = $value ?: 0;
+        if ($value === null) {
+            return $value;
+        }
 
-        if ($count < $min) {
+        if ($value < $min) {
             throw new ValidationException('min');
         }
 
@@ -40,9 +42,11 @@ class NumberFilter extends Filter
 
     public static function max(?float $value, float $max): ?float
     {
-        $count = $value ?: 0;
+        if ($value === null) {
+            return $value;
+        }
 
-        if ($count > $max) {
+        if ($value > $max) {
             throw new ValidationException('max');
         }
 
@@ -51,12 +55,15 @@ class NumberFilter extends Filter
 
     public static function range(?float $value, float $min, float $max): ?float
     {
-        $count = $value ?: 0;
+        if ($value === null) {
+            return $value;
+        }
 
-        if ($count < $min) {
+        if ($value < $min) {
             throw new ValidationException('range');
         }
-        if ($count > $max) {
+
+        if ($value > $max) {
             throw new ValidationException('range');
         }
 

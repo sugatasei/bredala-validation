@@ -82,13 +82,16 @@ class Helper
      */
     public static function normalize(string $input): string
     {
-        $search = [];
-        $search[] = '/(?:\r\n|[\r\n])/'; // new lines
-        $search[] = '/[\xA0\xAD\x{2000}-\x{200F}\x{2028}-\x{202F}\x{205F}-\x{206F}]/u'; // spaces
+        // Special spaces
+        $search = '/[\xA0\xAD\x{2000}-\x{200F}\x{2028}-\x{202F}\x{205F}-\x{206F}' . "\t" . ']/u'; // spaces
 
-        $replace = [PHP_EOL, ' '];
+        $input = str_replace("\r", '', $input);
+        $input = preg_replace($search, ' ', $input);
+        $input = preg_replace('/[^\S\n]+/', ' ', $input);
+        $input = preg_replace('/\n\s+/', "\n", $input);
+        $input = preg_replace('/\s+\n+/', "\n", $input);
 
-        return preg_replace($search, $replace, $input);
+        return $input;
     }
 
     /**

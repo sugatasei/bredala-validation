@@ -57,7 +57,7 @@ class ArrayFilter extends Filter
     {
         $count = $value ? count($value) : 0;
 
-        if (count($value) < $min) {
+        if ($count < $min) {
             throw new ValidationException('min');
         }
 
@@ -94,6 +94,41 @@ class ArrayFilter extends Filter
 
         if ($count > $max) {
             throw new ValidationException('max');
+        }
+
+        return $value;
+    }
+
+
+    public static function include(mixed $value, array $items): mixed
+    {
+        if (!$value || !$items || !is_array($value)) {
+            return $value;
+        }
+
+        $items = array_flip($items);
+
+        foreach ($value as $v) {
+            if (!isset($items[$v])) {
+                throw new ValidationException('include');
+            }
+        }
+
+        return $value;
+    }
+
+    public static function ex(mixed $value, array $items): mixed
+    {
+        if (!$value || !$items || !is_array($value)) {
+            return $value;
+        }
+
+        $items = array_flip($items);
+
+        foreach ($value as $v) {
+            if (isset($items[$v])) {
+                throw new ValidationException('exclude');
+            }
         }
 
         return $value;

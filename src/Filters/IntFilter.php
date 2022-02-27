@@ -33,9 +33,11 @@ class IntFilter extends Filter
 
     public static function min(?int $value, int $min): ?int
     {
-        $count = $value ?: 0;
+        if ($value === null) {
+            return $value;
+        }
 
-        if ($count < $min) {
+        if ($value < $min) {
             throw new ValidationException('min');
         }
 
@@ -44,9 +46,11 @@ class IntFilter extends Filter
 
     public static function max(?int $value, int $max): ?int
     {
-        $count = $value ?: 0;
+        if ($value === null) {
+            return $value;
+        }
 
-        if ($count > $max) {
+        if ($value > $max) {
             throw new ValidationException('max');
         }
 
@@ -55,12 +59,15 @@ class IntFilter extends Filter
 
     public static function range(?int $value, int $min, int $max): ?int
     {
-        $count = $value ?: 0;
+        if ($value === null) {
+            return $value;
+        }
 
-        if ($count < $min) {
+        if ($value < $min) {
             throw new ValidationException('range');
         }
-        if ($count > $max) {
+
+        if ($value > $max) {
             throw new ValidationException('range');
         }
 

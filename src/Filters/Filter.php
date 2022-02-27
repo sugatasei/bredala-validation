@@ -8,7 +8,7 @@ class Filter
 {
     public static function required(mixed $value): mixed
     {
-        if ($value === null || $value = '' || $value === []) {
+        if ($value === null || $value === '' || $value === []) {
             throw new ValidationException('required');
         }
 
@@ -30,6 +30,11 @@ class Filter
             throw new ValidationException('exclude');
         }
 
+        return $value;
+    }
+
+    public static function fake(mixed $value): mixed
+    {
         return $value;
     }
 }

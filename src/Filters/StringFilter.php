@@ -24,6 +24,15 @@ class StringFilter extends Filter
         throw new ValidationException('type');
     }
 
+    public static function removeLines(?string $value): ?string
+    {
+        if ($value) {
+            $value = str_replace("\n", ' ', $value);
+        }
+
+        return $value;
+    }
+
     public static function sanitizeUrl(mixed $value): ?string
     {
         if (!$value || !is_string($value)) {
@@ -39,7 +48,11 @@ class StringFilter extends Filter
      */
     public static function min(?string $value, int $min): ?string
     {
-        $count = $value ? mb_strlen($value) : 0;
+        if ($value === null) {
+            return $value;
+        }
+
+        $count = mb_strlen($value);
 
         if ($count < $min) {
             throw new ValidationException('min');
@@ -54,7 +67,11 @@ class StringFilter extends Filter
      */
     public static function max(?string $value, int $max): ?string
     {
-        $count = $value ? mb_strlen($value) : 0;
+        if ($value === null) {
+            return $value;
+        }
+
+        $count = mb_strlen($value);
 
         if ($count > $max) {
             throw new ValidationException('max');
@@ -70,7 +87,11 @@ class StringFilter extends Filter
      */
     public static function range(?string $value, int $min, int $max): ?string
     {
-        $count = $value ? mb_strlen($value) : 0;
+        if ($value === null) {
+            return $value;
+        }
+
+        $count = mb_strlen($value);
 
         if ($count < $min) {
             throw new ValidationException('range');
@@ -114,7 +135,7 @@ class StringFilter extends Filter
      */
     public static function match(?string $value, string $pattern): ?string
     {
-        if ($value && preg_match($pattern, $value) !== 1) {
+        if ($value !== null && preg_match($pattern, $value) !== 1) {
             throw new ValidationException('match');
         }
 
@@ -126,7 +147,7 @@ class StringFilter extends Filter
      */
     public static function email(?string $value): ?string
     {
-        if ($value && !filter_var($value, FILTER_VALIDATE_EMAIL)) {
+        if ($value !== null && !filter_var($value, FILTER_VALIDATE_EMAIL)) {
             throw new ValidationException('email');
         }
 
@@ -138,7 +159,7 @@ class StringFilter extends Filter
      */
     public static function ip(?string $value): ?string
     {
-        if ($value && !filter_var($value, FILTER_VALIDATE_IP)) {
+        if ($value !== null && !filter_var($value, FILTER_VALIDATE_IP)) {
             throw new ValidationException('ip');
         }
 
@@ -150,7 +171,7 @@ class StringFilter extends Filter
      */
     public static function ipv4(?string $value): ?string
     {
-        if ($value && !filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+        if ($value !== null && !filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
             throw new ValidationException('ip');
         }
 
@@ -162,7 +183,7 @@ class StringFilter extends Filter
      */
     public static function ipv6(?string $value): ?string
     {
-        if ($value && !filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+        if ($value !== null && !filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
             throw new ValidationException('ip');
         }
 
@@ -171,7 +192,7 @@ class StringFilter extends Filter
 
     public static function url(?string $value): ?string
     {
-        if ($value && !filter_var($value, FILTER_VALIDATE_URL)) {
+        if ($value !== null && !filter_var($value, FILTER_VALIDATE_URL)) {
             throw new ValidationException('url');
         }
 
