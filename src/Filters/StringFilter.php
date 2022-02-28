@@ -36,6 +36,8 @@ class StringFilter extends Filter
         $value = preg_replace('/ *\n */', "\n", $value);
         // two sets of consecutive lines at maximum
         $value = preg_replace('/\n{3,}/', "\n\n", $value);
+        // remove consecutive spaces
+        $value = preg_replace('/ +/', " ", $value);
         // trim all
         $value = trim($value);
 
