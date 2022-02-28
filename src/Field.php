@@ -105,11 +105,7 @@ class Field implements JsonSerializable
 
     public function string(bool $multiline = false): static
     {
-        $this->addRule([StringFilter::class, "sanitize"]);
-        if (!$multiline) {
-            $this->addRule([StringFilter::class, "removeLines"]);
-        }
-        return $this;
+        return $this->addRule([StringFilter::class, "sanitize"], [$multiline]);
     }
 
     public function url(): static
