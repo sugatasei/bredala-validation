@@ -54,11 +54,21 @@ class StringFilter extends Filter
 
     public static function sanitizeUrl(mixed $value): ?string
     {
+        return self::sanitizeType($value, FILTER_SANITIZE_URL);
+    }
+
+    public static function sanitizeEmail(mixed $value): ?string
+    {
+        return self::sanitizeType($value, FILTER_SANITIZE_EMAIL);
+    }
+
+    private static function sanitizeType(mixed $value, int $type): ?string
+    {
         if (!$value || !is_string($value)) {
             return null;
         }
 
-        return filter_var($value, FILTER_SANITIZE_URL) ?: null;
+        return filter_var($value, $type) ?: null;
     }
 
     /**

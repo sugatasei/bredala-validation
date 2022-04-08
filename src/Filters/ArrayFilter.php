@@ -32,7 +32,10 @@ class ArrayFilter extends Filter
         $output = [];
         foreach ($input as $key => $value) {
             try {
-                $output[$key] = call_user_func($callback, $value);
+                $value = call_user_func($callback, $value);
+                if ($value !== '' && $value !== null) {
+                    $output[$key] = $value;
+                }
             } catch (ValidationException $ex) {
             }
         }
