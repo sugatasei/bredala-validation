@@ -4,6 +4,7 @@ namespace Bredala\Validation;
 
 use Bredala\Validation\Fields\ArrayField;
 use Bredala\Validation\Fields\BooleanField;
+use Bredala\Validation\Fields\DecimalField;
 use Bredala\Validation\Fields\FieldException;
 use Bredala\Validation\Fields\IntegerField;
 use Bredala\Validation\Fields\SkipException;
