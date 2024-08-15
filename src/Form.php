@@ -12,6 +12,7 @@ use Bredala\Validation\Fields\StringField;
 
 class Form
 {
+    private bool $isValid = false;
     private array $filters = [];
     private array $rules = [];
     private array $defaults = [];
@@ -92,6 +93,7 @@ class Form
 
     public function validate(array $data): bool
     {
+        $this->isValid = true;
         $this->errors = [];
         $this->values = [];
 
@@ -129,6 +131,7 @@ class Form
 
     public function setError(string $name, string $error): static
     {
+        $this->isValid = false;
         $this->errors[$name] = $error;
         return $this;
     }
@@ -139,7 +142,7 @@ class Form
 
     public function isValid(): bool
     {
-        return empty($this->errors);
+        return $this->isValid;
     }
 
     public function error(string $name): ?string
