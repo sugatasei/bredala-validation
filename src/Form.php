@@ -32,29 +32,29 @@ class Form
         return $this;
     }
 
-    public function boolean(string $name, callable $rule): static
+    public function boolean(string $name, callable $rule, mixed $default = null): static
     {
-        return $this->field($name, [BooleanField::class, 'sanitize'], $rule);
+        return $this->field($name, [BooleanField::class, 'sanitize'], $rule, $default);
     }
 
-    public function integer(string $name, callable $rule): static
+    public function integer(string $name, callable $rule, mixed $default = null): static
     {
-        return $this->field($name, [IntegerField::class, 'sanitize'], $rule);
+        return $this->field($name, [IntegerField::class, 'sanitize'], $rule, $default);
     }
 
-    public function decimal(string $name, callable $rule): static
+    public function decimal(string $name, callable $rule, mixed $default = null): static
     {
-        return $this->field($name, [DecimalField::class, 'sanitize'], $rule);
+        return $this->field($name, [DecimalField::class, 'sanitize'], $rule, $default);
     }
 
-    public function input(string $name, callable $rule): static
+    public function input(string $name, callable $rule, mixed $default = null): static
     {
-        return $this->field($name, [StringField::class, 'input'], $rule);
+        return $this->field($name, [StringField::class, 'input'], $rule, $default);
     }
 
-    public function text(string $name, callable $rule): static
+    public function text(string $name, callable $rule, mixed $default = null): static
     {
-        return $this->field($name, [StringField::class, 'text'], $rule);
+        return $this->field($name, [StringField::class, 'text'], $rule, $default);
     }
 
     public function mapBoolean(string $name, callable $rule): static
