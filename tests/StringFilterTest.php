@@ -42,7 +42,7 @@ class StringFieldTest extends TestCase
      */
     public function testNumericValuesAreCastToString(mixed $input, string $expected)
     {
-        // Numerics short-circuit the whole sanitizing pipeline.
+        // Ints and floats short-circuit the whole sanitizing pipeline.
         self::assertSame($expected, StringFilter::input($input));
     }
 
@@ -54,6 +54,8 @@ class StringFieldTest extends TestCase
             'float' => [1.5, '1.5'],
             'numeric string' => ['42', '42'],
             'negative' => [-7, '-7'],
+            'numeric string with spaces' => ['  42 ', '42'],
+            'exponent with spaces' => [" 1e3\n", '1e3'],
         ];
     }
 

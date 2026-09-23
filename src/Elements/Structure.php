@@ -5,6 +5,7 @@ namespace Bredala\Validation\Elements;
 use Bredala\Validation\Filters\ArrayFilter;
 use Bredala\Validation\Result;
 use Bredala\Validation\Schema;
+use Bredala\Validation\ValidationException;
 
 /**
  * An array with known keys, each validated by its own schema.
@@ -15,8 +16,20 @@ class Structure extends Schema
     /**
      * @param Schema[] $items
      */
+    private bool $optional = false;
+
     public function __construct(private array $items)
     {
+    }
+
+    /**
+     * Makes the structure optional: when absent, it takes this value instead
+     * of processing its items.
+     */
+    public function default(mixed $value): static
+    {
+        $this->optional = true;
+        return parent::default($value);
     }
 
     /**
@@ -27,6 +40,23 @@ class Structure extends Schema
     {
         $this->asserts[] = [$callback, $code, $field];
         return $this;
+    }
+
+    /**
+     * $field must equal $other, like a password confirmation. The error
+     * goes on $field.
+     */
+    public function same(string $field, string $other): static
+    {
+        return $this->assert(fn(array $v) => $v[$field] === $v[$other], 'same', $field);
+    }
+
+    /**
+     * $field must differ from $other. The error goes on $field.
+     */
+    public function different(string $field, string $other): static
+    {
+        return $this->assert(fn(array $v) => $v[$field] !== $v[$other], 'different', $field);
     }
 
     /**
@@ -53,6 +83,10 @@ class Structure extends Schema
 
     protected function processNull(): Result
     {
+        if ($this->optional) {
+            return $this->complete($this->default, $this->default);
+        }
+
         return $this->processValue([]);
     }
 
@@ -76,7 +110,12 @@ class Structure extends Schema
         }
 
         foreach ($this->asserts as [$callback, $code, $field]) {
-            if (!$callback($values)) {
+            try {
+                $valid = $callback($values);
+            } catch (ValidationException $ex) {
+                [$valid, $code] = [false, $ex->getMessage()];
+            }
+            if (!$valid) {
                 return new Result($values, $field === null ? $code : [$field => $code]);
             }
         }

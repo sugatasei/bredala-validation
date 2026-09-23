@@ -1,6 +1,6 @@
 ---
 name: bredala-validation
-description: How to correctly validate and sanitize form input — schemas, types, required/default, before/assert/transform/castTo, nested structures and arrays (any depth), anyOf/enum, DTOs via Schema::from, error codes and human-readable messages — using the sugatasei/bredala-validation PHP library (namespace Bredala\Validation — Schema (static factories + validate()), Result, Messages, Elements\Type/Structure/ArrayOf/AnyOf, and the Filters\* (StringFilter, IntegerFilter, DecimalFilter, BooleanFilter, ArrayFilter), the Rules\* (StringRule) and Schema::fail()). Its API is modeled on Nette Schema but keeps form-oriented sanitizing, error codes and values() for re-filling forms. Use this whenever the project's composer.json requires sugatasei/bredala-validation, code imports from Bredala\Validation\*, or you're asked to add/change input validation, a form or request validator, a DTO built from a payload, field sanitizing, required/min/max/pattern/date/email checks, or validation error messages in a PHP project that has this library — even if the request is phrased generically like "validate this payload", "make email required" or "check the age is between 18 and 99". Also check this before writing raw filter_var/preg_match/trim chains or a hand-rolled errors array in such a project, and before porting code from the v5 Form API (Form, StringFilter::required, Field::skip), which no longer exists.
+description: How to correctly validate and sanitize form input — schemas, types, required/default, before/assert/transform/castTo, nested structures and arrays (any depth), anyOf/enum, DTOs via Schema::from, error codes and human-readable messages — using the sugatasei/bredala-validation PHP library (namespace Bredala\Validation — Schema (static factories + validate()), Result, Messages, Elements\Type/StringType/NumberType/Structure/ArrayOf/AnyOf, and the Filters\* (StringFilter, IntegerFilter, DecimalFilter, BooleanFilter, ArrayFilter), the Rules\* (StringRule, NumberRule, ArrayRule) and Schema::fail()). Its API is modeled on Nette Schema but keeps form-oriented sanitizing, error codes and values() for re-filling forms. Use this whenever the project's composer.json requires sugatasei/bredala-validation, code imports from Bredala\Validation\*, or you're asked to add/change input validation, a form or request validator, a DTO built from a payload, field sanitizing, required/min/max/pattern/date/email checks, or validation error messages in a PHP project that has this library — even if the request is phrased generically like "validate this payload", "make email required" or "check the age is between 18 and 99". Also check this before writing raw filter_var/preg_match/trim chains or a hand-rolled errors array in such a project, and before porting code from the v5 Form API (Form, StringField, Field::required, Field::skip), which no longer exists.
 ---
 
 # bredala-validation
@@ -22,7 +22,7 @@ For the full method list see `references/api-reference.md`. Read `references/got
 1. `before()` callbacks on the **raw** input.
 2. The type's **built-in sanitizing** (`Schema::int()` turns `'42'` into `42`, `Schema::input()` trims and strips tags). `''` becomes `null`. Unconvertible input → code `type`.
 3. `null` → code `required` if `required()`, otherwise the default. Steps 4–5 are skipped.
-4. Built-in checks: `min`, `max`, `pattern`, date/email/url formats.
+4. Built-in checks, in declaration order: date/email/url formats, `min`, `max`, `pattern`. Each is a shortcut to a `Rules\*` function (`StringRule::maxLength`, `NumberRule::min`, `ArrayRule::minCount`…); `min()`/`max()` mean length on strings, value on numbers, count on arrays. `bool()`/`mixed()` have none.
 5. `assert()` callbacks. **The value now goes to `values()`.**
 6. Only if valid: `transform()` callbacks, then `castTo()`. **The result goes to `data()`.**
 
@@ -72,6 +72,7 @@ if ($result->isValid()) {
 | Numbers / booleans from a form | `Schema::int()`, `Schema::float()`, `Schema::bool()` |
 | Date / datetime / time (strict formats) | `Schema::date()`, `Schema::datetime()`, `Schema::time()` |
 | Email / http(s) URL | `Schema::email()`, `Schema::url()` |
+| UUID / IP / JSON string | `Schema::uuid()`, `Schema::ip(4\|6\|null)`, `Schema::json()` |
 | One of fixed values | `Schema::anyOf('a', 'b')`, or `Schema::enum(Status::class)` |
 | A sub-object | `Schema::structure([...])` |
 | Repeated rows / tags | `Schema::arrayOf($item)`, `Schema::listOf($item)` (keys 0..n) |
@@ -94,7 +95,7 @@ Schema::string()->required()->assert(function (string $v) {
 });
 
 // reusable type
-function siret(): \Bredala\Validation\Elements\Type
+function siret(): \Bredala\Validation\Elements\StringType
 {
     return Schema::input()
         ->before(fn($v) => str_replace(' ', '', (string) $v))
@@ -104,8 +105,9 @@ function siret(): \Bredala\Validation\Elements\Type
 ```
 
 - `assert()` fails on a **falsy** return; forgetting `return true` in a multi-code callback fails every value.
-- A structure's `assert($fn, $code, $field)` receives all its sanitized values, runs only when all its items are valid, and puts the error on `$field` (or on the structure itself without `$field`; under `''` at the root).
+- A structure's `assert($fn, $code, $field)` receives all its sanitized values, runs only when all its items are valid, and puts the error on `$field` (or on the structure itself without `$field`; under `''` at the root). It can also `Schema::fail('code')`: the code goes to the same place.
 - `before()` / `transform()` can also reject with `Schema::fail('code')`.
+- Before writing an `assert()`, check the built-in shortcuts: `length()`, `alpha()`, `alnum()`, `digits()`, `pattern()` on strings; `multipleOf()` on numbers; `unique()` on arrays; `same()`/`different()` on structures (password confirmation).
 
 ## Errors and messages
 
@@ -123,10 +125,10 @@ An element has **either** its own code **or** children errors. A root-level code
 
 - **Optional by default.** Absent, `null`, `''` and whitespace-only input (for `input()`) are all "missing". Use `required()`.
 - **Unknown keys are silently dropped** from structures.
-- **An absent structure is processed as `[]`**, so its children's `required()` still fire; an absent array defaults to `[]`.
+- **An absent structure is processed as `[]`**, so its children's `required()` still fire, unless the structure has a `default()` (`->default(null)` makes it optional). An absent array defaults to `[]`, but `min(1)` still fails it.
 - **An array's own error (`min`, `max`, `list`, `type`, `required`) hides its elements' errors.**
 - **`data()` throws `LogicException` when invalid**; always check `isValid()` first. `values()` never throws.
-- **After a `type` error, `values()` holds the default**, not the raw input.
+- **After a `type` error, `values()` holds the default**, not the raw input (`[]` for an array, the children's defaults for a structure).
 - **`castTo()` on a structure uses named constructor arguments**: every declared key must match a parameter, or PHP throws `Error: Unknown named parameter`.
 - **`IntegerFilter` truncates floats** (`'1.9'` → `1`) instead of erroring.
 - **Tags are stripped but their text survives** in `input()`/`text()`: this is sanitizing, not XSS protection. Escape on output.

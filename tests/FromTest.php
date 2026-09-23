@@ -63,6 +63,16 @@ final class FromTestEvent
     }
 }
 
+final class FromTestDefaults
+{
+    public function __construct(
+        public readonly ?FromTestAddress $billing,
+        public readonly FromTestStatus $status = FromTestStatus::Draft,
+        public readonly ?FromTestAddress $address = null,
+    ) {
+    }
+}
+
 class FromTest extends TestCase
 {
     private static function process(Schema $schema, mixed $value): Result
@@ -176,5 +186,29 @@ class FromTest extends TestCase
         ]);
 
         self::assertSame('2026-10-15', self::process($schema, ['date' => '2026-10-15'])->data()->date->format('Y-m-d'));
+    }
+
+    public function testAnEnumDefaultIsUsed()
+    {
+        $result = self::process(Schema::from(FromTestDefaults::class), []);
+
+        self::assertSame('draft', $result->values()['status']);
+        self::assertSame(FromTestStatus::Draft, $result->data()->status);
+    }
+
+    public function testANullableNestedClassCanBeOmitted()
+    {
+        $result = self::process(Schema::from(FromTestDefaults::class), []);
+
+        self::assertTrue($result->isValid());
+        self::assertNull($result->data()->address);
+        self::assertNull($result->data()->billing);
+    }
+
+    public function testANullableNestedClassIsValidatedWhenGiven()
+    {
+        $result = self::process(Schema::from(FromTestDefaults::class), ['address' => ['zip' => '75001']]);
+
+        self::assertSame(['address' => ['city' => 'required']], $result->errors());
     }
 }

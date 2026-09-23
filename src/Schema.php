@@ -7,7 +7,7 @@ use InvalidArgumentException;
 
 /**
  * Pipeline of a schema element:
- * before() -> sanitize -> null (required / default) -> checks -> assert()
+ * before() -> sanitize -> null (required / default) -> rules -> assert()
  * -> values() ... then, when valid: transform() -> castTo() -> data().
  */
 abstract class Schema
@@ -17,6 +17,7 @@ abstract class Schema
     protected bool $required = false;
     protected mixed $default = null;
     private array $before = [];
+    private array $rules = [];
     protected array $asserts = [];
     private array $transforms = [];
     private ?string $castTo = null;
@@ -82,6 +83,16 @@ abstract class Schema
         }
 
         $this->castTo = $type;
+        return $this;
+    }
+
+    /**
+     * A built-in check, run before the assert() callbacks: a falsy return of
+     * $check sets $code. Declaring a code again replaces its check.
+     */
+    protected function rule(string $code, callable $check): static
+    {
+        $this->rules[$code] = $check;
         return $this;
     }
 
@@ -155,10 +166,15 @@ abstract class Schema
     }
 
     /**
-     * Type-specific checks, throwing a ValidationException.
+     * Runs the rules, throwing the code of the first one that fails.
      */
     protected function check(mixed $value): void
     {
+        foreach ($this->rules as $code => $check) {
+            if (!$check($value)) {
+                self::fail($code);
+            }
+        }
     }
 
     protected function runAsserts(mixed $value): void

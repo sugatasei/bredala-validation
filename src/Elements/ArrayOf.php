@@ -4,6 +4,7 @@ namespace Bredala\Validation\Elements;
 
 use Bredala\Validation\Filters\ArrayFilter;
 use Bredala\Validation\Result;
+use Bredala\Validation\Rules\ArrayRule;
 use Bredala\Validation\Schema;
 use Bredala\Validation\ValidationException;
 
@@ -13,27 +14,41 @@ use Bredala\Validation\ValidationException;
  */
 class ArrayOf extends Schema
 {
-    private ?int $min = null;
-    private ?int $max = null;
-
     public function __construct(
         private Schema $item,
         private ?Schema $key = null,
-        private bool $list = false,
+        bool $list = false,
     ) {
         $this->default = [];
+
+        if ($list) {
+            $this->rule('list', fn(array $v) => ArrayRule::isList($v));
+        }
     }
 
+    /**
+     * Minimum number of elements.
+     */
     public function min(int $min): static
     {
-        $this->min = $min;
-        return $this;
+        return $this->rule('min', fn(array $v) => ArrayRule::minCount($v, $min));
     }
 
+    /**
+     * Maximum number of elements.
+     */
     public function max(int $max): static
     {
-        $this->max = $max;
-        return $this;
+        return $this->rule('max', fn(array $v) => ArrayRule::maxCount($v, $max));
+    }
+
+    /**
+     * No two elements are equal, compared on their sanitized values.
+     * Runs like an assert(): only when all elements are valid.
+     */
+    public function unique(): static
+    {
+        return $this->assert(ArrayRule::isUnique(...), 'unique');
     }
 
     // -------------------------------------------------------------------------
@@ -87,29 +102,20 @@ class ArrayOf extends Schema
         return $this->complete($values, $data);
     }
 
-    protected function check(mixed $value): void
-    {
-        if ($this->list && !array_is_list($value)) {
-            Schema::fail('list');
-        }
-
-        if ($this->min !== null && count($value) < $this->min) {
-            Schema::fail('min');
-        }
-
-        if ($this->max !== null && count($value) > $this->max) {
-            Schema::fail('max');
-        }
-    }
-
+    /**
+     * An absent array is its default ([]): its rules still apply, so min(1)
+     * rejects it.
+     */
     protected function processNull(): Result
     {
         if ($this->required) {
             return new Result([], 'required');
         }
 
-        if ($this->min) {
-            return new Result([], 'min');
+        try {
+            $this->check($this->default);
+        } catch (ValidationException $ex) {
+            return new Result($this->default, $ex->getMessage());
         }
 
         return $this->complete($this->default, $this->default);

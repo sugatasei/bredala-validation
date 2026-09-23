@@ -5,7 +5,7 @@ Things the method names don't tell you. Most items are pinned by a test in `test
 ## Processing and results
 
 - **`data()` throws `LogicException` on an invalid result**, including one invalid only because a `transform()` rejected the value. Check `isValid()` first. `values()` and `errors()` never throw.
-- **`values()` is the sanitized value, not the raw input.** After a `type` error, it holds the element's **default** (usually `null`), so a form re-filled from `values()` loses what the user typed in that field.
+- **`values()` is the sanitized value, not the raw input.** After a `type` error, it holds the element's **default** (usually `null`; always `[]` for an array, the children's defaults for a structure), so a form re-filled from `values()` loses what the user typed in that field.
 - **`values()` of a structure always has every declared key**, even when the input lacked them, and never has undeclared keys.
 - **A root-level error is under the `''` key** of `errors()`: `type` when the data isn't an array, or a root `assert()` without `$field`.
 - **A schema holds no state between runs**, so one instance can be processed many times, or shared.
@@ -17,7 +17,7 @@ Things the method names don't tell you. Most items are pinned by a test in `test
 - **`Schema::mixed()` doesn't even turn `''` into `null`**: `''` passes `required()`.
 - **Checks and asserts don't run on a missing value**, so `Schema::input()->min(3)` accepts an absent field. Add `required()`.
 - **`transform()` and `castTo()` do run on a non-null default**: `Schema::int()->default(18)->castTo('string')` gives `'18'` in `data()`.
-- **`required()` and `default()` have no effect on a structure**: an absent structure is processed as `[]`.
+- **`required()` has no effect on a structure**: an absent structure is processed as `[]`, so its children's `required()` fire. `default()` makes it optional: absent, it takes that value (`->default(null)`).
 - **An absent array defaults to `[]`, but `min(1)` still fails it with `min`.**
 
 ## Types and sanitizing
@@ -26,7 +26,7 @@ Things the method names don't tell you. Most items are pinned by a test in `test
 - **`Schema::float()` always yields a float**: `3` → `3.0`, so `=== 3` fails.
 - **`Schema::bool()` rejects numbers other than 0 and 1** with `type`.
 - **`input()`/`text()` strip tags but keep their text**: `'<script>alert(1)</script>'` → `'alert(1)'`. Entities are decoded (`'a&amp;b'` → `'a&b'`). Escape on output.
-- **`input()`/`text()` short-circuit on numerics**: `42` becomes `'42'` with no cleaning.
+- **`input()`/`text()` short-circuit on ints and floats**: `42` becomes `'42'`. Numeric strings are cleaned like any string (`'  42 '` → `'42'`).
 - **`true` is a `type` error for every string type** (it isn't numeric).
 - **`StringFilter::sanitizeEmail()`/`sanitizeUrl()` only clean, they don't validate**, and return `null` instead of erroring. Use `Schema::email()`/`url()` to validate.
 - **`Schema::url()` rejects non-http(s) schemes**, including `javascript:` and `ftp:`.
@@ -72,7 +72,8 @@ Things the method names don't tell you. Most items are pinned by a test in `test
 
 ## Schema::from
 
-- **Arrays and nested classes are never `required()`**, even without a default: arrays default to `[]` and nested structures are processed as `[]`.
+- **Arrays and nested classes are never `required()`**, even without a default: arrays default to `[]` and nested structures are processed as `[]`. A **nullable** nested class (`?Address`) is optional: absent, it is `null`.
+- **An enum default becomes its value** in `values()` (`'draft'`), and the case in `data()`. An object default (`new Foo()`) is ignored.
 - **`array` parameters become `arrayOf(mixed())`**: the elements aren't validated. Override them in `$items`.
 - **Overrides in `$items` for names that aren't parameters are added to the structure**, and then fail `castTo()` as unknown named arguments.
 

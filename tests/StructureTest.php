@@ -101,6 +101,16 @@ class StructureTest extends TestCase
         self::assertSame(['age' => 18], self::process($schema, 'oops')->values());
     }
 
+    public function testADefaultMakesTheStructureOptional()
+    {
+        $schema = Schema::structure([
+            'address' => Schema::structure(['city' => Schema::input()->required()])->default(null),
+        ]);
+
+        self::assertSame(['address' => null], self::process($schema, [])->data());
+        self::assertSame(['address' => ['city' => 'required']], self::process($schema, ['address' => ['zip' => '1']])->errors());
+    }
+
     public function testStructuresNest()
     {
         $schema = Schema::structure([
@@ -185,6 +195,14 @@ class StructureTest extends TestCase
 
         self::assertFalse($called);
         self::assertSame(['end' => 'required'], $result->errors());
+    }
+
+    public function testAnAssertCanFailWithItsOwnCode()
+    {
+        $schema = self::period()->assert(fn() => Schema::fail('closed'), field: 'start');
+
+        self::assertSame(['start' => 'closed'], self::process($schema, ['start' => '2026-10-01', 'end' => '2026-10-15'])->errors());
+        self::assertSame(['' => 'closed'], self::process(self::period()->assert(fn() => Schema::fail('closed')), ['start' => '2026-10-01', 'end' => '2026-10-15'])->errors());
     }
 
     public function testTheFirstFailingAssertWins()

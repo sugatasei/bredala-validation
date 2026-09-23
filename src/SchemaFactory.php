@@ -5,6 +5,8 @@ namespace Bredala\Validation;
 use BackedEnum;
 use Bredala\Validation\Elements\AnyOf;
 use Bredala\Validation\Elements\ArrayOf;
+use Bredala\Validation\Elements\NumberType;
+use Bredala\Validation\Elements\StringType;
 use Bredala\Validation\Elements\Structure;
 use Bredala\Validation\Elements\Type;
 use Bredala\Validation\Filters\BooleanFilter;
@@ -30,83 +32,103 @@ trait SchemaFactory
     /**
      * A single-line string, cleaned by StringFilter::input().
      */
-    public static function input(): Type
+    public static function input(): StringType
     {
-        return new Type([StringFilter::class, 'input']);
+        return new StringType([StringFilter::class, 'input']);
     }
 
     /**
      * A multiline string, cleaned by StringFilter::text().
      */
-    public static function text(): Type
+    public static function text(): StringType
     {
-        return new Type([StringFilter::class, 'text']);
+        return new StringType([StringFilter::class, 'text']);
     }
 
     /**
      * A string as sent, not cleaned: only '' becomes null.
      */
-    public static function string(): Type
+    public static function string(): StringType
     {
-        return new Type([StringFilter::class, 'raw']);
+        return new StringType([StringFilter::class, 'raw']);
     }
 
     /**
      * A date, 'Y-m-d' by default (like <input type="date">).
      */
-    public static function date(string $format = 'Y-m-d'): Type
+    public static function date(string $format = 'Y-m-d'): StringType
     {
-        return self::input()->format(fn(string $v) => StringRule::isDate($v, $format), 'date');
+        return self::input()->rule('date', fn(string $v) => StringRule::isDate($v, $format));
     }
 
     /**
      * An ISO 8601 date and time with its offset by default
      * (2026-10-15T14:30:00+02:00 or 2026-10-15T14:30:00Z).
      */
-    public static function datetime(?string $format = null): Type
+    public static function datetime(?string $format = null): StringType
     {
         $formats = $format === null ? ['Y-m-d\TH:i:sP', 'Y-m-d\TH:i:sp'] : [$format];
 
-        return self::input()->format(fn(string $v) => StringRule::isDate($v, ...$formats), 'datetime');
+        return self::input()->rule('datetime', fn(string $v) => StringRule::isDate($v, ...$formats));
     }
 
     /**
      * A time as hh:mm or hh:mm:ss.
      */
-    public static function time(): Type
+    public static function time(): StringType
     {
-        return self::input()->format(fn(string $v) => StringRule::isDate($v, 'H:i', 'H:i:s'), 'time');
+        return self::input()->rule('time', fn(string $v) => StringRule::isDate($v, 'H:i', 'H:i:s'));
     }
 
-    public static function email(): Type
+    public static function email(): StringType
     {
-        return self::input()->format(fn(string $v) => filter_var($v, FILTER_VALIDATE_EMAIL) !== false, 'email');
+        return self::input()->rule('email', StringRule::isEmail(...));
     }
 
     /**
      * An http or https URL.
      */
-    public static function url(): Type
+    public static function url(): StringType
     {
-        return self::input()->format(
-            fn(string $v) => filter_var($v, FILTER_VALIDATE_URL) !== false
-                && in_array(strtolower((string) parse_url($v, PHP_URL_SCHEME)), ['http', 'https'], true),
-            'url'
-        );
+        return self::input()->rule('url', StringRule::isUrl(...));
+    }
+
+    /**
+     * A UUID in its canonical form, any version.
+     */
+    public static function uuid(): StringType
+    {
+        return self::input()->rule('uuid', StringRule::isUuid(...));
+    }
+
+    /**
+     * An IP address; $version restricts it to 4 or 6.
+     */
+    public static function ip(?int $version = null): StringType
+    {
+        return self::input()->rule('ip', fn(string $v) => StringRule::isIp($v, $version));
+    }
+
+    /**
+     * A JSON document, as sent (not cleaned, so tags inside strings survive).
+     */
+    public static function json(): StringType
+    {
+        return self::string()->rule('json', StringRule::isJson(...));
     }
 
     // -------------------------------------------------------------------------
     // Other scalars
     // -------------------------------------------------------------------------
 
-    public static function int(): Type
+    public static function int(): NumberType
     {
-        return new Type([IntegerFilter::class, 'sanitize']);
+        return new NumberType([IntegerFilter::class, 'sanitize']);
     }
 
-    public static function float(): Type
+    public static function float(): NumberType
     {
-        return new Type([DecimalFilter::class, 'sanitize']);
+        return new NumberType([DecimalFilter::class, 'sanitize']);
     }
 
     public static function bool(): Type
@@ -229,7 +251,14 @@ trait SchemaFactory
             : $member->hasDefaultValue();
 
         if ($hasDefault) {
-            $schema->default($member->getDefaultValue());
+            $default = $member->getDefaultValue();
+            $default = $default instanceof BackedEnum ? $default->value : $default;
+            // an object default (new Foo()) cannot be a sanitized value: the items apply
+            if (!is_object($default)) {
+                $schema->default($default);
+            }
+        } elseif ($type !== null && $type->allowsNull() && $schema instanceof Structure) {
+            $schema->default(null);
         } elseif ($type !== null && !$type->allowsNull()
             && !$schema instanceof Structure && !$schema instanceof ArrayOf) {
             $schema->required();
