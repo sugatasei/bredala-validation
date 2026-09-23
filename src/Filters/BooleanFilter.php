@@ -1,14 +1,16 @@
 <?php
 
-namespace Bredala\Validation\Fields;
+namespace Bredala\Validation\Filters;
 
-class BooleanField extends Field
+use Bredala\Validation\Schema;
+
+class BooleanFilter
 {
     // -------------------------------------------------------------------------
     // Filters
     // -------------------------------------------------------------------------
 
-    public static function sanitize(mixed $value): ?int
+    public static function sanitize(mixed $value): ?bool
     {
         if ($value === null) {
             return null;
@@ -26,7 +28,7 @@ class BooleanField extends Field
                 return true;
             }
 
-            self::trigger('type');
+            Schema::fail('type');
         }
 
         if (is_string($value)) {
@@ -40,21 +42,7 @@ class BooleanField extends Field
             }
         }
 
-        self::trigger('type');
-    }
-
-    // -------------------------------------------------------------------------
-    // Rules
-    // -------------------------------------------------------------------------
-
-    public static function isTrue(bool $value)
-    {
-        return self::match($value, true);
-    }
-
-    public static function isFalse(bool $value)
-    {
-        return self::match($value, false);
+        Schema::fail('type');
     }
 
     // -------------------------------------------------------------------------

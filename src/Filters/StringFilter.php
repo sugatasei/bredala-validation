@@ -1,8 +1,11 @@
 <?php
 
-namespace Bredala\Validation\Fields;
+namespace Bredala\Validation\Filters;
 
-class StringField extends Field
+use Bredala\Validation\Schema;
+use Stringable;
+
+class StringFilter
 {
     // -------------------------------------------------------------------------
     // Filters
@@ -18,6 +21,26 @@ class StringField extends Field
         return self::sanitize($value, true);
     }
 
+    /**
+     * Converts to a string without cleaning it: only '' becomes null.
+     */
+    public static function raw(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_string($value)) {
+            return $value;
+        }
+
+        if (is_int($value) || is_float($value) || $value instanceof Stringable) {
+            return (string) $value;
+        }
+
+        Schema::fail('type');
+    }
+
     public static function sanitize(mixed $value, bool $multiline = false): ?string
     {
         if ($value === null) {
@@ -29,7 +52,7 @@ class StringField extends Field
         }
 
         if (!is_string($value)) {
-            self::trigger('type');
+            Schema::fail('type');
         }
 
         // convert into valid utf-8 string
@@ -90,53 +113,6 @@ class StringField extends Field
         }
 
         return filter_var($value, $type) ?: null;
-    }
-
-    // -------------------------------------------------------------------------
-    // Rules
-    // -------------------------------------------------------------------------
-
-    /**
-     * @param string $value
-     * @param integer $min
-     */
-    public static function min(string $value, int $min)
-    {
-        $count = mb_strlen($value);
-
-        if ($count < $min) {
-            self::trigger('min');
-        }
-    }
-
-    /**
-     * @param string $value
-     * @param integer $max
-     */
-    public static function max(string $value, int $max)
-    {
-        $count = mb_strlen($value);
-
-        if ($count > $max) {
-            self::trigger('max');
-        }
-    }
-
-    /**
-     * @param string $value
-     * @param integer $min
-     * @param integer $max
-     */
-    public static function range(string $value, int $min, int $max)
-    {
-        $count = mb_strlen($value);
-
-        if ($count < $min) {
-            self::trigger('range');
-        }
-        if ($count > $max) {
-            self::trigger('range');
-        }
     }
 
     // -------------------------------------------------------------------------
